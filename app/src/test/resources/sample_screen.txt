@@ -1,0 +1,22 @@
+검사일 2026-03-12
+Protein(Random Urine)  21.4  mg/dl  0.0~15.0
+Protein/Creatinine(Random Urine)  0.22
+Albumin(micro,Random)/Creat(Random) Ratio  142.6  mg/g  0.0~19.9
+Albumin(micro,Random urine)  141.0
+Creatinine(Random Urine)  98.90  mg/dl  39.0~259.0
+S.G  1.020  1.005~1.030
+WBC  5.88  천/μℓ  4.00~10.00
+Hb  15.1  g/dL  13.1~17.5
+PLT  238  천/μℓ  140~400
+Na  140.9  mEq/L  133.0~145.0
+K  4.62  mEq/L  3.50~5.50
+Cl  104.0  mEq/L  95.0~110.0
+TCO2  25.4  mEq/L  22.0~29.0
+BUN  18.4  mg/dL  6.0~20.0
+Creatinine  1.38  mg/dl  0.50~1.20
+eGFR(IDMS-MDRD)  58.10
+eGFR(CKDEPI)  63.20
+Albumin  4.4  g/dL  3.5~5.2
+Ca  9.3  mg/dl  8.6~10.7
+P  3.21  mg/dL  2.5~4.5
+Uric acid  6.1  mg/dL  3.4~7.9

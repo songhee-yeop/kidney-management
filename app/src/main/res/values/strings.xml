@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capture_summary">My 인하 검사결과를 버튼 한 번으로 읽어옵니다</string>
+    <string name="capture_desc">My 인하 검사결과조회 화면에서 접근성 버튼을 누르면, 그 날짜의 결과를 처음부터 끝까지 자동으로 스크롤하며 읽어 신장 관리 앱에 넣습니다. 버튼을 누를 때만 동작하며, 읽은 내용은 이 휴대폰 밖으로 전송되지 않습니다.</string>
+</resources>
