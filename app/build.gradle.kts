@@ -12,8 +12,8 @@ android {
         applicationId = "kr.songhy.kidney"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "2.6"
+        versionCode = 18
+        versionName = "2.7"
         // S24 FE(arm64) 전용 — OCR 엔진의 다른 기기용 파일을 빼서 용량을 줄인다
         ndk { abiFilters += listOf("arm64-v8a") }
     }

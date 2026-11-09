@@ -223,6 +223,7 @@ class CaptureService : AccessibilityService() {
         val iso = MyInha.isoDate(target) ?: return ""
         val recognizer = ocr ?: TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build()).also { ocr = it }
         val byName = LinkedHashMap<String, String>()
+        val fixes = mutableListOf<Triple<String, String, String>>()
         val dm = resources.displayMetrics
         var lastSig = ""
         var shots = 0
@@ -251,6 +252,7 @@ class CaptureService : AccessibilityService() {
                 lastSig = sig
                 if (shots == 1) log += "OCR 첫 화면:\n  " + ordered.joinToString("\n  ")
                 val chunk = MyInha.toLabText(listOf(target) + MyInha.ocrTokens(ordered), target)
+                MyInha.corrections.forEach { c -> if (c !in fixes) fixes += c }
                 chunk.lines().drop(1).forEach { line ->
                     val key = byName.keys.firstOrNull { k -> k == line.substringBefore("  ") || MyInha.sameItem(byName[k]!!, line) }
                         ?: line.substringBefore("  ")
@@ -265,7 +267,11 @@ class CaptureService : AccessibilityService() {
             // 엔진은 전체 읽기가 끝난 뒤 한 번만 닫는다 (날짜마다 닫으면 다음 날짜에서 멈춤)
         }
         log += "OCR: 화면 ${shots}장, 항목 ${byName.size}개"
-        return if (byName.isEmpty()) "" else "검사일 $iso\n" + byName.values.joinToString("\n")
+        if (byName.isEmpty()) return ""
+        // 소수점 보정 항목이 실제 저장될 값과 같을 때만 안내
+        val notes = fixes.filter { (name, _, new) -> byName.values.any { it.startsWith("$name  $new") } }
+        return "검사일 $iso\n" + notes.joinToString("") { (name, old, new) -> "# 자동 보정: $name $old → $new\n" } +
+            byName.values.joinToString("\n")
     }
 
     /** OCR 줄을 같은 높이끼리 묶어 위→아래, 왼쪽→오른쪽 순서로 */

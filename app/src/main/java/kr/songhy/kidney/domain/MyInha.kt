@@ -112,6 +112,42 @@ object MyInha {
     private fun looksLikeName(v: String) =
         v.isNotEmpty() && !v.first().isDigit() && validName(v) && v.lowercase() !in TEXT_VALUES && !v.startsWith("+")
 
+    /** 마지막 toLabText에서 소수점을 보정한 항목 ("Neutrophil 471 → 47.1") */
+    val corrections = mutableListOf<Triple<String, String, String>>()
+
+    // 백분율로만 나오는 항목 (100을 넘을 수 없음)
+    private val PERCENT_ITEMS = Regex("""^(neutrophil|lymphocyte|monocyte|eosinophil|basophil|luc|hct|rdw|pdw|ig\b.*|seg.*|band.*)""", RegexOption.IGNORE_CASE)
+
+    /**
+     * 글자 인식이 소수점을 놓친 값 보정.
+     * - 백분율 항목인데 100 초과 → 10(또는 100)으로 나눔
+     * - 소수점 없는 값이 참고치 상한보다 크고, 10 또는 100으로 나누면 참고치 안에 들어오며,
+     *   참고치가 소수점 단위로 적혀 있으면 → 나눈 값으로
+     */
+    fun fixDecimal(name: String, value: String, unit: String, ref: String): String {
+        val v = value.toDoubleOrNull() ?: return value
+        if (value.contains('.')) return value
+        val percent = unit.trim() == "%" || PERCENT_ITEMS.containsMatchIn(name.trim())
+        if (percent && v > 100) {
+            val d = if (v / 10 <= 100) v / 10 else v / 100
+            return trimNum(d)
+        }
+        val m = Regex("""(\d+(?:\.\d+)?)\s*[~∼\-–]\s*(\d+(?:\.\d+)?)""").find(ref) ?: return value
+        val lo = m.groupValues[1].toDouble(); val hi = m.groupValues[2].toDouble()
+        // 참고치가 0부터인 항목(ACR·소변 단백·CRP 등)은 실제로 크게 나오는 경우가 흔해 보정하지 않는다
+        if (!ref.contains('.') || v <= hi || lo <= 0.0) return value
+        for (div in listOf(10.0, 100.0)) {
+            val d = v / div
+            if (d >= lo && d <= hi) return trimNum(d)
+        }
+        return value
+    }
+
+    private fun trimNum(d: Double): String {
+        val s = String.format(java.util.Locale.US, "%.3f", d)
+        return s.trimEnd('0').trimEnd('.')
+    }
+
     fun isoDate(s: String): String? = DATE.find(s)?.let { m ->
         "${m.groupValues[1]}-${m.groupValues[2].padStart(2, '0')}-${m.groupValues[3].padStart(2, '0')}"
     }
@@ -155,6 +191,7 @@ object MyInha {
             out.append("검사일 ${m.groupValues[1]}-${m.groupValues[2].padStart(2, '0')}-${m.groupValues[3].padStart(2, '0')}\n")
         }
         val parts = mutableListOf<String>()
+        corrections.clear()
         var i = 0
         while (i < sec.size) {
             val t = sec[i]
@@ -191,7 +228,9 @@ object MyInha {
                     // 값 자리에 다른 칸의 글자(참고치/그래프 등)가 들어온 경우는 버린다
                     val bogus = value in setOf("참고치", "그래프", "결과", "검사정보") || (value.isNotEmpty() && value == sec.getOrNull(k)?.trim())
                     if (validName(name) && value.isNotEmpty() && !bogus) {
-                        out.append(listOf(name, value, unit, ref).filter { it.isNotEmpty() }.joinToString("  ")).append('\n')
+                        val fixed = fixDecimal(name, value, unit, ref)
+                        if (fixed != value) corrections += Triple(name, value, fixed)
+                        out.append(listOf(name, fixed, unit, ref).filter { it.isNotEmpty() }.joinToString("  ")).append('\n')
                     }
                     i = k
                     continue

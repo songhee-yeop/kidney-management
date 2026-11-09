@@ -192,14 +192,32 @@ private fun refText(v: LabValue): String? = when {
 }
 
 @Composable
-private fun RecordDialog(r: LabRecord, data: AppData, onDismiss: () -> Unit) {
+private fun RecordDialog(initial: LabRecord, data: AppData, onDismiss: () -> Unit) {
+    // 수정하면 최신 값으로 다시 그린다
+    val r = data.labs.find { it.date == initial.date } ?: initial
     var confirmDelete by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
+    var editKey by remember { mutableStateOf<String?>(null) }
     val clipboard = LocalClipboardManager.current
     val prev = data.labsSorted.lastOrNull { it.date < r.date }
+    editKey?.let { k ->
+        val v = r.values[k]
+        if (v == null) editKey = null
+        else EditValueDialog(Catalog.name(k, v), v.value) { nv ->
+            if (nv != null) Store.update { d ->
+                d.copy(labs = d.labs.map { rec -> if (rec.date == r.date) rec.copy(values = rec.values + (k to v.copy(value = nv))) else rec })
+            }
+            editKey = null
+        }
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("${r.date.fmt()} 검사") },
+        title = {
+            Column {
+                Text("${r.date.fmt()} 검사")
+                Muted("수치를 누르면 고칠 수 있습니다")
+            }
+        },
         text = {
             Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 r.values.entries.sortedWith(compareBy({ Catalog.order(it.key) }, { it.key })).forEach { (k, v) ->
@@ -216,6 +234,7 @@ private fun RecordDialog(r: LabRecord, data: AppData, onDismiss: () -> Unit) {
                                 "${fmtNum(v.value, 3)} ${Catalog.unit(k, v)}${flag?.let { " $it" } ?: ""}",
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (flag != null) Sem.bad else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.clickable { editKey = k },
                             )
                             if (pv != null) {
                                 val d = v.value - pv
@@ -325,6 +344,14 @@ fun PasteScreen(initial: String, onClose: () -> Unit) {
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(if (previewCopied) "복사했습니다 (${blocks.size}개 날짜)" else "전체 내용 복사 (ChatGPT 등에 붙여넣기)") }
+            }
+            val notes = text.lines().filter { it.trimStart().startsWith("# 자동 보정") }.map { it.trimStart('#', ' ') }
+            if (notes.isNotEmpty()) {
+                Text(
+                    "소수점을 놓친 것으로 보여 자동으로 고쳤습니다. 맞는지 확인해 주세요.\n" + notes.joinToString("\n") { "· " + it.removePrefix("자동 보정: ") },
+                    color = Sem.warn, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth().background(Sem.warn.copy(alpha = 0.12f), RoundedCornerShape(8.dp)).padding(10.dp),
+                )
             }
             if (blocks.isNotEmpty()) Muted("수치를 누르면 고칠 수 있습니다. 화면 글자 인식은 소수점을 놓치는 경우가 있으니 주요 수치를 한 번 확인해 주세요.")
             if (text.startsWith("[읽은 원본]")) {

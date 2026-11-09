@@ -112,10 +112,10 @@ object LabParser {
         return Block(date, out)
     }
 
-    private fun isLabLine(line: String) = row(line) != null || matchLine(line) != null
+    private fun isLabLine(line: String) = !line.trimStart().startsWith("#") && (row(line) != null || matchLine(line) != null)
 
     private fun matchLine(line: String): Pair<Field, MatchResult>? {
-        if (DATE.containsMatchIn(line)) return null
+        if (DATE.containsMatchIn(line) || line.trimStart().startsWith("#")) return null
         for (f in FIELDS) {
             val m = f.re.find(line) ?: continue
             if (f.skip?.containsMatchIn(line) == true) continue
@@ -125,7 +125,7 @@ object LabParser {
     }
 
     private fun row(line: String): Row? {
-        if (DATE.containsMatchIn(line)) return null
+        if (DATE.containsMatchIn(line) || line.trimStart().startsWith("#")) return null
         val toks = line.trim().split(SPACES)
         val idx = toks.indexOfFirst { NUMTOK.matches(it) }
         if (idx < 1) return null

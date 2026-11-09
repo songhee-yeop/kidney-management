@@ -166,6 +166,28 @@ class MyInhaTest {
         assertTrue(MyInha.sameItem("T.Protein  7.2  g/dL  6.4-8.3", "TProtein  7.2  g/dL  6.4~8.3"))
     }
 
+    @Test fun fixesMissingDecimalPoint() {
+        assertEquals("47.1", MyInha.fixDecimal("Neutrophil", "471", "", ""))          // 백분율 항목 100 초과
+        assertEquals("47.1", MyInha.fixDecimal("Neutrophil", "471", "%", "40.0~75.0"))
+        assertEquals("17.7", MyInha.fixDecimal("BUN", "177", "mg/dL", "6.0~20.0"))
+        assertEquals("4.48", MyInha.fixDecimal("K", "448", "mEq/L", "3.50~5.50"))
+        assertEquals("301.1", MyInha.fixDecimal("ACR", "301.1", "mg/g", "0.0~19.9"))  // 소수점 있으면 그대로
+        assertEquals("301", MyInha.fixDecimal("ACR", "301", "mg/g", "0.0~19.9"))      // 참고치 0부터: 보정 안 함
+        assertEquals("150", MyInha.fixDecimal("ACR", "150", "mg/g", "0.0~19.9"))
+        assertEquals("69", MyInha.fixDecimal("Glucose", "69", "mg/dL", "70~100"))      // 참고치가 정수면 건드리지 않음
+        assertEquals("211", MyInha.fixDecimal("Cholesterol", "211", "mg/dL", "123~200"))
+        val t = "검사일: 2026년03월12일(목)"
+        val text = MyInha.toLabText(listOf(t) + MyInha.ocrTokens(listOf(
+            "Neutrophil 검사정보", "결과 553 그래프", "참고치 40.0~75.0 (%)",
+        )), t)
+        assertTrue(text, text.contains("Neutrophil  55.3  %  40.0~75.0"))
+        assertEquals(Triple("Neutrophil", "553", "55.3"), MyInha.corrections.single())
+        // 메모 줄(#)은 파서가 무시
+        val b = LabParser.parseMany("검사일 2026-03-12\n# 자동 보정: Neutrophil 553 → 55.3\nNeutrophil  55.3  %  40.0~75.0").single()
+        assertEquals(1, b.values.size)
+        assertEquals(55.3, b.values["x:neutrophil"]!!.value, 1e-9)
+    }
+
     @Test fun midSectionIsNotTop() {
         assertFalse(MyInha.atSectionTop(screen.drop(5)))
     }
